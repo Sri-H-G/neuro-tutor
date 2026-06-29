@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# EEG data (large files)
+data/*.edf
+data/*.bdf
+data/*.fif
+data/*.set
+data/*.mat
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs & outputs
+*.log
+outputs/
+results/
+.matplotlib/
