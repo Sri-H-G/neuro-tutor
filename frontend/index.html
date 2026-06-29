@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuro GenAI Loop</title>
+  <style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1f2a;
+    --border: #2a3142;
+    --text: #e8eaef;
+    --muted: #7d8496;
+    --accent: #6c8cff;
+    --focused: #3dd68c;
+    --overloaded: #f59e42;
+    --disengaged: #8b9dc3;
+    --calibrating: #6b7280;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem 2rem;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 { font-size: 1.35rem; font-weight: 600; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; max-width: 520px; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding: 0.4rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--calibrating);
+  }
+  .dot.live { background: var(--focused); box-shadow: 0 0 8px var(--focused); }
+  .dot.error { background: #ef4444; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+  }
+
+  .card h2 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .mode-badge {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    transition: background 0.3s, color 0.3s;
+  }
+  .mode-badge.focused { background: rgba(61,214,140,0.15); color: var(--focused); }
+  .mode-badge.overloaded { background: rgba(245,158,66,0.15); color: var(--overloaded); }
+  .mode-badge.disengaged { background: rgba(139,157,195,0.15); color: var(--disengaged); }
+  .mode-badge.calibrating { background: rgba(107,114,128,0.15); color: var(--calibrating); }
+
+  .metric { margin-bottom: 1rem; }
+  .metric-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+  .metric-label span:last-child { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .bar-track {
+    height: 10px;
+    background: var(--surface2);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.35s ease;
+  }
+  .bar-fill.engagement { background: linear-gradient(90deg, var(--accent), #8ba4ff); }
+  .bar-fill.load { background: linear-gradient(90deg, var(--overloaded), #fbbf24); }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+  }
+  .meta-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+  }
+  .meta-item label { color: var(--muted); display: block; font-size: 0.7rem; }
+  .meta-item span { font-variant-numeric: tabular-nums; }
+
+  .mode-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .spectrum-img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 0.5rem;
+  }
+
+  .chat-card { min-height: 520px; display: flex; flex-direction: column; }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    min-height: 320px;
+    max-height: 420px;
+    padding-right: 0.25rem;
+  }
+
+  .msg {
+    max-width: 92%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.tutor {
+    align-self: flex-start;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.35rem;
+  }
+  .msg.tutor .msg-meta { color: var(--muted); }
+
+  .chat-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--border); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .chat-input-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .chat-input {
+    flex: 1;
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+
+  .warning {
+    background: rgba(245,158,66,0.1);
+    border: 1px solid rgba(245,158,66,0.3);
+    color: var(--overloaded);
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .lesson-list {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+  .lesson-list ol { padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Neuro GenAI Loop</h1>
+        <p class="subtitle">
+          Adaptive tutor driven by session-calibrated EEG state (replayed rest→task).
+          Mode steers pedagogy in real time.
+        </p>
+      </div>
+      <div class="status-pill">
+        <span class="dot" id="ws-dot"></span>
+        <span id="ws-status">Connecting…</span>
+      </div>
+    </header>
+
+    <div id="api-warning" class="warning" style="display:none">
+      GEMINI_API_KEY not set. Chat won't work until you export the key and restart the app.
+    </div>
+
+    <div class="layout">
+      <aside>
+        <div class="card" style="margin-bottom: 1.25rem">
+          <h2>Brain State</h2>
+          <div class="mode-badge calibrating" id="mode-badge">calibrating</div>
+
+          <div class="metric">
+            <div class="metric-label">
+              <span>Engagement</span>
+              <span id="eng-val">0.00</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill engagement" id="eng-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">
+              <span>Cognitive load</span>
+              <span id="load-val">0.00</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill load" id="load-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-item">
+              <label>Replay time</label>
+              <span id="replay-t">0.0s</span>
+            </div>
+            <div class="meta-item">
+              <label>Calibrating</label>
+              <span id="cal-flag">yes</span>
+            </div>
+          </div>
+
+          <p class="mode-hint" id="mode-hint">
+            Focused → tutor advances. Overloaded → slows down. Disengaged → re-engages or suggests a break.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>Verification Spectrum</h2>
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">
+            Rest vs task Welch PSD (Subject00)
+          </p>
+          <img class="spectrum-img" id="spectrum" src="/outputs/spectrum_rest_vs_task.png" alt="Spectrum plot"
+               onerror="this.style.display='none'">
+        </div>
+
+        <div class="card" style="margin-top:1.25rem">
+          <h2>Lesson</h2>
+          <p style="font-size:0.85rem;color:var(--text)">Introduction to Neural Networks</p>
+          <div class="lesson-list">
+            <ol>
+              <li>Neuron: inputs, weights, activation</li>
+              <li>Layers and stacked networks</li>
+              <li>Forward pass</li>
+              <li>Loss function</li>
+              <li>Backpropagation</li>
+              <li>MNIST intuition</li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+
+      <main class="card chat-card">
+        <h2>Adaptive Tutor</h2>
+
+        <div class="chat-actions">
+          <button class="btn primary" id="start-btn">Start lesson</button>
+          <button class="btn" id="continue-btn">Continue</button>
+        </div>
+
+        <div class="chat-messages" id="chat"></div>
+
+        <div class="chat-input-row">
+          <input class="chat-input" id="chat-input" type="text"
+                 placeholder="Ask a question or say continue…" autocomplete="off">
+          <button class="btn primary" id="send-btn">Send</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const WS_URL = `ws://${location.hostname}:8765`;
+    const MODE_HINTS = {
+      focused: 'Engaged and coping → tutor advances, goes deeper, or quizzes.',
+      overloaded: 'On-task but straining → tutor slows, simplifies, checks understanding.',
+      disengaged: 'Attention dropping → tutor re-engages or suggests a break.',
+      calibrating: 'Establishing baseline (~10s). Teaching at steady pace.',
+    };
+
+    const modeBadge = document.getElementById('mode-badge');
+    const engVal = document.getElementById('eng-val');
+    const loadVal = document.getElementById('load-val');
+    const engBar = document.getElementById('eng-bar');
+    const loadBar = document.getElementById('load-bar');
+    const replayT = document.getElementById('replay-t');
+    const calFlag = document.getElementById('cal-flag');
+    const modeHint = document.getElementById('mode-hint');
+    const chat = document.getElementById('chat');
+    const chatInput = document.getElementById('chat-input');
+    const wsDot = document.getElementById('ws-dot');
+    const wsStatus = document.getElementById('ws-status');
+    const apiWarning = document.getElementById('api-warning');
+
+    function clamp01(v) {
+      return Math.max(0, Math.min(1, Number(v) || 0));
+    }
+
+    function updateBrain(data) {
+      const eng = clamp01(data.engagement);
+      const load = clamp01(data.load);
+      const mode = data.mode || 'calibrating';
+
+      modeBadge.textContent = mode;
+      modeBadge.className = 'mode-badge ' + mode;
+
+      engVal.textContent = eng.toFixed(2);
+      loadVal.textContent = load.toFixed(2);
+      engBar.style.width = (eng * 100).toFixed(1) + '%';
+      loadBar.style.width = (load * 100).toFixed(1) + '%';
+
+      replayT.textContent = (data.timestamp || 0).toFixed(1) + 's';
+      calFlag.textContent = data.calibrating ? 'yes' : 'no';
+      modeHint.textContent = MODE_HINTS[mode] || MODE_HINTS.calibrating;
+    }
+
+    function addMessage(role, text, meta) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = text + (meta ? `<div class="msg-meta">${meta}</div>` : '');
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function apiPost(path, body) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function startLesson() {
+      document.getElementById('start-btn').disabled = true;
+      try {
+        const data = await apiPost('/api/start');
+        addMessage('tutor', data.reply,
+          `mode: ${data.mode} · eng ${data.engagement?.toFixed(2)} · load ${data.load?.toFixed(2)}`);
+      } catch (e) {
+        addMessage('tutor', 'Error: ' + e.message);
+        document.getElementById('start-btn').disabled = false;
+      }
+    }
+
+    async function sendMessage(text) {
+      if (!text.trim()) return;
+      addMessage('user', text);
+      chatInput.value = '';
+      document.getElementById('send-btn').disabled = true;
+
+      try {
+        const data = await apiPost('/api/chat', { message: text });
+        addMessage('tutor', data.reply,
+          `mode: ${data.mode} · eng ${data.engagement?.toFixed(2)} · load ${data.load?.toFixed(2)}`);
+      } catch (e) {
+        addMessage('tutor', 'Error: ' + e.message);
+      }
+      document.getElementById('send-btn').disabled = false;
+    }
+
+    function connectWebSocket() {
+      const ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        wsDot.className = 'dot live';
+        wsStatus.textContent = 'Live';
+      };
+
+      ws.onmessage = (ev) => {
+        try { updateBrain(JSON.parse(ev.data)); } catch {}
+      };
+
+      ws.onclose = () => {
+        wsDot.className = 'dot error';
+        wsStatus.textContent = 'Disconnected — retrying…';
+        setTimeout(connectWebSocket, 2000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        updateBrain(data);
+        if (!data.has_api_key) apiWarning.style.display = 'block';
+      } catch {}
+    }
+
+    document.getElementById('start-btn').addEventListener('click', startLesson);
+    document.getElementById('continue-btn').addEventListener('click', () =>
+      sendMessage("What's the next concept? Let's keep going."));
+    document.getElementById('send-btn').addEventListener('click', () =>
+      sendMessage(chatInput.value));
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage(chatInput.value);
+    });
+
+    checkStatus();
+    connectWebSocket();
+  </script>
+</body>
+</html>
