@@ -16,6 +16,9 @@ class BrainSnapshot:
     mode: str
     calibrating: bool
     timestamp: float
+    alpha: float = 0.0
+    theta: float = 0.0
+    beta: float = 0.0
 
 
 class BrainState:
@@ -28,6 +31,9 @@ class BrainState:
         self._mode = "calibrating"
         self._calibrating = True
         self._timestamp = time.time()
+        self._alpha = 0.0
+        self._theta = 0.0
+        self._beta = 0.0
 
     def update(self, result: DecodeResult, timestamp: float | None = None) -> None:
         with self._lock:
@@ -36,6 +42,9 @@ class BrainState:
             self._mode = result.mode
             self._calibrating = result.calibrating
             self._timestamp = timestamp if timestamp is not None else time.time()
+            self._alpha = result.alpha
+            self._theta = result.theta
+            self._beta = result.beta
 
     def snapshot(self) -> BrainSnapshot:
         with self._lock:
@@ -45,4 +54,7 @@ class BrainState:
                 mode=self._mode,
                 calibrating=self._calibrating,
                 timestamp=self._timestamp,
+                alpha=self._alpha,
+                theta=self._theta,
+                beta=self._beta,
             )

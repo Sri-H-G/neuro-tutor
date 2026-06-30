@@ -22,6 +22,9 @@ class DecodeResult:
     load: float
     mode: str
     calibrating: bool
+    alpha: float = 0.0
+    theta: float = 0.0
+    beta: float = 0.0
 
 
 class StateDecoder:
@@ -74,14 +77,14 @@ class StateDecoder:
         self._pending_mode = None
         self._pending_count = 0
 
-    def _extract_raw_signals(self, window: np.ndarray, sfreq: float) -> tuple[float, float]:
+    def _extract_raw_signals(self, window: np.ndarray, sfreq: float) -> tuple[float, float, dict]:
         """Frontal relative alpha → inverted engagement; relative theta → load."""
         powers = band_powers(window, sfreq)
         rel_alpha = relative_alpha(powers)
         rel_theta = relative_theta(powers)
         raw_engagement = 1.0 - rel_alpha
         raw_load = rel_theta
-        return raw_engagement, raw_load
+        return raw_engagement, raw_load, powers
 
     def _normalize(self, value: float, vmin: float, vmax: float) -> float:
         span = vmax - vmin
@@ -126,7 +129,7 @@ class StateDecoder:
 
         Returns engagement (0–1), load (0–1), mode, and calibrating flag.
         """
-        raw_eng, raw_load = self._extract_raw_signals(window, sfreq)
+        raw_eng, raw_load, powers = self._extract_raw_signals(window, sfreq)
 
         # Calibration phase — collect min/max candidates from raw values
         if len(self._cal_engagement) < self.calibration_samples:
@@ -144,6 +147,9 @@ class StateDecoder:
                 load=raw_load,
                 mode=MODE_CALIBRATING,
                 calibrating=True,
+                alpha=powers.get("alpha", 0.0),
+                theta=powers.get("theta", 0.0),
+                beta=powers.get("beta", 0.0),
             )
 
         norm_eng = self._normalize(raw_eng, self._eng_min, self._eng_max)
@@ -169,4 +175,7 @@ class StateDecoder:
             load=self._smoothed_load,
             mode=mode,
             calibrating=False,
+            alpha=powers.get("alpha", 0.0),
+            theta=powers.get("theta", 0.0),
+            beta=powers.get("beta", 0.0),
         )

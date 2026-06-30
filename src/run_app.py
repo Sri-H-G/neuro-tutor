@@ -32,12 +32,17 @@ class AppHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(FRONTEND_DIR), **kwargs)
 
     def log_message(self, format, *args):
-        if args and args[0].startswith("GET /"):
+        if args and isinstance(args[0], str) and args[0].startswith("GET /"):
             return  # quiet static requests
         super().log_message(format, *args)
 
     def do_GET(self):
         path = urlparse(self.path).path
+
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+            return
 
         if path.startswith("/outputs/"):
             file_path = OUTPUTS_DIR / path.removeprefix("/outputs/")
@@ -153,6 +158,9 @@ async def websocket_handler(websocket):
                 "mode": snap.mode,
                 "calibrating": snap.calibrating,
                 "timestamp": snap.timestamp,
+                "alpha": snap.alpha,
+                "theta": snap.theta,
+                "beta": snap.beta,
             }
             await websocket.send(json.dumps(payload))
             await asyncio.sleep(0.25)

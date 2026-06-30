@@ -260,6 +260,43 @@
     line-height: 1.6;
   }
   .lesson-list ol { padding-left: 1.2rem; }
+
+  .band-chart-wrap {
+    margin: 1rem 0;
+  }
+  .band-chart-wrap h3 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .band-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .band-legend span::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .band-legend .l-theta::before { background: #7c6fff; }
+  .band-legend .l-alpha::before { background: #3dd68c; }
+  .band-legend .l-beta::before  { background: #f59e42; }
+  #band-canvas {
+    width: 100%;
+    height: 90px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: block;
+  }
   </style>
 </head>
 <body>
@@ -306,6 +343,16 @@
             <div class="bar-track">
               <div class="bar-fill load" id="load-bar" style="width:0%"></div>
             </div>
+          </div>
+
+          <div class="band-chart-wrap">
+            <h3>Band Power (frontal)</h3>
+            <div class="band-legend">
+              <span class="l-theta">Theta 4–8 Hz</span>
+              <span class="l-alpha">Alpha 8–13 Hz</span>
+              <span class="l-beta">Beta 13–30 Hz</span>
+            </div>
+            <canvas id="band-canvas" width="600" height="90"></canvas>
           </div>
 
           <div class="meta-grid">
@@ -460,27 +507,6 @@
       document.getElementById('send-btn').disabled = false;
     }
 
-    function connectWebSocket() {
-      const ws = new WebSocket(WS_URL);
-
-      ws.onopen = () => {
-        wsDot.className = 'dot live';
-        wsStatus.textContent = 'Live';
-      };
-
-      ws.onmessage = (ev) => {
-        try { updateBrain(JSON.parse(ev.data)); } catch {}
-      };
-
-      ws.onclose = () => {
-        wsDot.className = 'dot error';
-        wsStatus.textContent = 'Disconnected — retrying…';
-        setTimeout(connectWebSocket, 2000);
-      };
-
-      ws.onerror = () => ws.close();
-    }
-
     async function checkStatus() {
       try {
         const res = await fetch('/api/status');
@@ -498,6 +524,88 @@
     chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendMessage(chatInput.value);
     });
+
+    // --- Band power scrolling chart ---
+    const bandCanvas = document.getElementById('band-canvas');
+    const bandCtx = bandCanvas.getContext('2d');
+    const BAND_HISTORY = 120; // samples to keep (~30s at 4 Hz)
+    const bandData = { theta: [], alpha: [], beta: [] };
+
+    function pushBand(theta, alpha, beta) {
+      bandData.theta.push(theta);
+      bandData.alpha.push(alpha);
+      bandData.beta.push(beta);
+      if (bandData.theta.length > BAND_HISTORY) {
+        bandData.theta.shift();
+        bandData.alpha.shift();
+        bandData.beta.shift();
+      }
+    }
+
+    function drawBandChart() {
+      const w = bandCanvas.width;
+      const h = bandCanvas.height;
+      const pad = { top: 6, bottom: 6 };
+      const drawH = h - pad.top - pad.bottom;
+      const n = bandData.theta.length;
+
+      bandCtx.clearRect(0, 0, w, h);
+
+      if (n < 2) return;
+
+      // Scale each band independently so they fit the chart height
+      const allVals = [...bandData.theta, ...bandData.alpha, ...bandData.beta];
+      const vMax = Math.max(...allVals) || 1;
+
+      function drawLine(values, color) {
+        bandCtx.beginPath();
+        bandCtx.strokeStyle = color;
+        bandCtx.lineWidth = 1.5;
+        bandCtx.lineJoin = 'round';
+        for (let i = 0; i < values.length; i++) {
+          const x = (i / (BAND_HISTORY - 1)) * w;
+          const y = pad.top + drawH * (1 - values[i] / vMax);
+          if (i === 0) bandCtx.moveTo(x, y);
+          else bandCtx.lineTo(x, y);
+        }
+        bandCtx.stroke();
+      }
+
+      drawLine(bandData.theta, '#7c6fff');
+      drawLine(bandData.alpha, '#3dd68c');
+      drawLine(bandData.beta,  '#f59e42');
+    }
+
+    const origUpdateBrain = updateBrain;
+    function updateBrainWithBands(data) {
+      origUpdateBrain(data);
+      if (data.alpha !== undefined) {
+        pushBand(data.theta || 0, data.alpha || 0, data.beta || 0);
+        drawBandChart();
+      }
+    }
+
+    // Patch WebSocket handler to use extended updater
+    function connectWebSocket() {
+      const ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        wsDot.className = 'dot live';
+        wsStatus.textContent = 'Live';
+      };
+
+      ws.onmessage = (ev) => {
+        try { updateBrainWithBands(JSON.parse(ev.data)); } catch {}
+      };
+
+      ws.onclose = () => {
+        wsDot.className = 'dot error';
+        wsStatus.textContent = 'Disconnected — retrying…';
+        setTimeout(connectWebSocket, 2000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
 
     checkStatus();
     connectWebSocket();

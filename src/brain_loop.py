@@ -61,12 +61,14 @@ def run_replay_loop(
     task_path = task_path or DATA_DIR / "Subject00_2.edf"
     sleep_sec = DECODER_STEP_SEC / speed
 
-    for t_sec, window, sfreq in _iter_concat_windows(rest_path, task_path):
-        if stop_event is not None and stop_event.is_set():
-            break
+    while True:
+        decoder.reset()
+        for t_sec, window, sfreq in _iter_concat_windows(rest_path, task_path):
+            if stop_event is not None and stop_event.is_set():
+                return
 
-        result = decoder.update(window, sfreq)
-        brain_state.update(result, timestamp=t_sec)
+            result = decoder.update(window, sfreq)
+            brain_state.update(result, timestamp=t_sec)
 
-        if sleep_sec > 0:
-            time.sleep(sleep_sec)
+            if sleep_sec > 0:
+                time.sleep(sleep_sec)
