@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuro GenAI Loop — Live Demo</title>
+  <style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1f2a;
+    --border: #2a3142;
+    --text: #e8eaef;
+    --muted: #7d8496;
+    --accent: #6c8cff;
+    --focused: #3dd68c;
+    --overloaded: #f59e42;
+    --disengaged: #8b9dc3;
+    --calibrating: #6b7280;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem 2rem;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  h1 { font-size: 1.35rem; font-weight: 600; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; max-width: 520px; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding: 0.4rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--focused);
+    box-shadow: 0 0 8px var(--focused);
+  }
+
+  .banner {
+    background: rgba(108,140,255,0.1);
+    border: 1px solid rgba(108,140,255,0.3);
+    color: var(--text);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.55;
+  }
+  .banner strong { color: var(--accent); }
+  .banner a { color: var(--accent); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+  }
+
+  .card h2 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .mode-badge {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    transition: background 0.3s, color 0.3s;
+  }
+  .mode-badge.focused { background: rgba(61,214,140,0.15); color: var(--focused); }
+  .mode-badge.overloaded { background: rgba(245,158,66,0.15); color: var(--overloaded); }
+  .mode-badge.disengaged { background: rgba(139,157,195,0.15); color: var(--disengaged); }
+  .mode-badge.calibrating { background: rgba(107,114,128,0.15); color: var(--calibrating); }
+
+  .metric { margin-bottom: 1rem; }
+  .metric-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+  .metric-label span:last-child { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .bar-track {
+    height: 10px;
+    background: var(--surface2);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.35s ease;
+  }
+  .bar-fill.engagement { background: linear-gradient(90deg, var(--accent), #8ba4ff); }
+  .bar-fill.load { background: linear-gradient(90deg, var(--overloaded), #fbbf24); }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+  }
+  .meta-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+  }
+  .meta-item label { color: var(--muted); display: block; font-size: 0.7rem; }
+  .meta-item span { font-variant-numeric: tabular-nums; }
+
+  .mode-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .chat-card { min-height: 520px; display: flex; flex-direction: column; }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    min-height: 320px;
+    max-height: 420px;
+    padding-right: 0.25rem;
+  }
+
+  .msg {
+    max-width: 92%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.tutor {
+    align-self: flex-start;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.35rem;
+  }
+
+  .chat-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--border); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .chat-input-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .chat-input {
+    flex: 1;
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+
+  .lesson-list {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+  .lesson-list ol { padding-left: 1.2rem; }
+  .lesson-list li.done { color: var(--focused); }
+
+  .band-chart-wrap { margin: 1rem 0; }
+  .band-chart-wrap h3 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .band-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .band-legend span::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .band-legend .l-theta::before { background: #7c6fff; }
+  .band-legend .l-alpha::before { background: #3dd68c; }
+  .band-legend .l-beta::before  { background: #f59e42; }
+  #band-canvas {
+    width: 100%;
+    height: 90px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: block;
+  }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Neuro GenAI Loop</h1>
+        <p class="subtitle">
+          Adaptive tutor driven by session-calibrated EEG state (replayed rest→task).
+          Mode steers pedagogy in real time.
+        </p>
+      </div>
+      <div class="status-pill">
+        <span class="dot"></span>
+        <span id="replay-status">Replaying recorded EEG…</span>
+      </div>
+    </header>
+
+    <div class="banner">
+      <strong>Demo mode.</strong> This page is static (GitHub Pages), so it replays a
+      precomputed EEG session instead of decoding live signal, and the tutor's replies
+      below are pre-written per brain-state mode rather than live Gemini calls — a
+      public page can't safely hold an API key. The brain-state pipeline (signal
+      cleaning → band powers → calibrated engagement/load → mode) and the mode→prompt
+      logic are real and unchanged; only the "typing" is simulated here.
+      Run it locally with your own Gemini key for the full live version — see the
+      <a href="https://github.com/Sri-H-G/neuro-tutor#readme">README</a>.
+    </div>
+
+    <div class="layout">
+      <aside>
+        <div class="card" style="margin-bottom: 1.25rem">
+          <h2>Brain State</h2>
+          <div class="mode-badge calibrating" id="mode-badge">calibrating</div>
+
+          <div class="metric">
+            <div class="metric-label">
+              <span>Engagement</span>
+              <span id="eng-val">0.00</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill engagement" id="eng-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">
+              <span>Cognitive load</span>
+              <span id="load-val">0.00</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill load" id="load-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="band-chart-wrap">
+            <h3>Band Power (frontal)</h3>
+            <div class="band-legend">
+              <span class="l-theta">Theta 4–8 Hz</span>
+              <span class="l-alpha">Alpha 8–13 Hz</span>
+              <span class="l-beta">Beta 13–30 Hz</span>
+            </div>
+            <canvas id="band-canvas" width="600" height="90"></canvas>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-item">
+              <label>Replay time</label>
+              <span id="replay-t">0.0s</span>
+            </div>
+            <div class="meta-item">
+              <label>Calibrating</label>
+              <span id="cal-flag">yes</span>
+            </div>
+          </div>
+
+          <p class="mode-hint" id="mode-hint">
+            Focused → tutor advances. Overloaded → slows down. Disengaged → re-engages or suggests a break.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>Lesson</h2>
+          <p style="font-size:0.85rem;color:var(--text)">Introduction to Neural Networks</p>
+          <div class="lesson-list">
+            <ol id="lesson-steps">
+              <li>The neuron</li>
+              <li>Layers</li>
+              <li>Forward pass</li>
+              <li>Loss function</li>
+              <li>Backpropagation</li>
+              <li>MNIST intuition</li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+
+      <main class="card chat-card">
+        <h2>Adaptive Tutor <span style="text-transform:none;letter-spacing:normal;color:var(--muted)">(simulated replies)</span></h2>
+
+        <div class="chat-actions">
+          <button class="btn primary" id="start-btn">Start lesson</button>
+          <button class="btn" id="continue-btn">Continue</button>
+        </div>
+
+        <div class="chat-messages" id="chat"></div>
+
+        <div class="chat-input-row">
+          <input class="chat-input" id="chat-input" type="text"
+                 placeholder="Ask a question or say continue…" autocomplete="off">
+          <button class="btn primary" id="send-btn">Send</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------------
+    // Lesson content — mirrors src/lesson.py. Two phrasings per step: a
+    // normal explanation (focused/calibrating) and a smaller, simpler one
+    // (overloaded) — the same idea src/mode_prompts.py encodes for the
+    // real Gemini-backed tutor.
+    // ---------------------------------------------------------------------
+    const STEPS = [
+      {
+        title: 'The neuron',
+        explain: "A neuron takes several inputs, multiplies each by a weight, adds them up, and passes the result through an activation function to produce one output value.",
+        simple: "Think of a neuron as a tiny voting machine: each input casts a weighted vote, the votes are summed, and the activation function decides whether it 'fires'. That's it for now.",
+      },
+      {
+        title: 'Layers',
+        explain: "Stack neurons side by side into a layer, and stack layers one after another, and you get a network — each layer takes the previous layer's outputs as its inputs.",
+        simple: "Picture layers as an assembly line: layer 1 does a simple pass over the raw input, layer 2 combines those results into something more useful, and so on.",
+      },
+      {
+        title: 'Forward pass',
+        explain: "The forward pass is data flowing left to right through the network: input goes in, each layer transforms it, and a prediction comes out the other end.",
+        simple: "Step by step: take the input, run it through layer 1, take that output, run it through layer 2, repeat until the last layer gives you a prediction.",
+      },
+      {
+        title: 'Loss function',
+        explain: "The loss function is a single number measuring how wrong the network's prediction was versus the true answer — bigger loss means a worse prediction.",
+        simple: "Predicted '7', true answer '7' → loss near zero. Predicted '2', true answer '7' → loss is large. That's the whole idea.",
+      },
+      {
+        title: 'Backpropagation',
+        explain: "Backpropagation works backward from the loss, computing how much each weight contributed to the error, so we know which direction to nudge every weight next.",
+        simple: "One piece at a time: backprop asks, for this one weight, 'if I nudge you up slightly, does the loss go up or down?' — then adjusts accordingly.",
+      },
+      {
+        title: 'MNIST intuition',
+        explain: "On MNIST, the input is a grid of pixel brightness values for a handwritten digit, and the output is 10 scores — one per digit 0-9 — the highest being the network's guess.",
+        simple: "Zoom in: one 28×28 image of a handwritten '3' becomes 784 numbers going in, and a single label, '3', with a confidence score, comes out.",
+      },
+    ];
+
+    const DISENGAGED_LINES = [
+      "Let's pause here for a second — want a short breather before we continue?",
+      "I notice focus dropping. Quick change of pace: what part so far felt clearest, and what felt fuzzy?",
+      "No rush at all. Take a short break if you need one — the lesson will be here when you're back.",
+    ];
+
+    const CALIBRATING_LINES = [
+      "Still establishing your baseline (~10s) — I'll teach at a steady pace until then.",
+      "Calibrating your signal. Meanwhile: a neural network is just layers of small, simple decisions chained together.",
+    ];
+
+    const MODE_HINTS = {
+      focused: 'Engaged and coping → tutor advances, goes deeper, or quizzes.',
+      overloaded: 'On-task but straining → tutor slows, simplifies, checks understanding.',
+      disengaged: 'Attention dropping → tutor re-engages or suggests a break.',
+      calibrating: 'Establishing baseline (~10s). Teaching at steady pace.',
+    };
+
+    // ---------------------------------------------------------------------
+    // Elements
+    // ---------------------------------------------------------------------
+    const modeBadge = document.getElementById('mode-badge');
+    const engVal = document.getElementById('eng-val');
+    const loadVal = document.getElementById('load-val');
+    const engBar = document.getElementById('eng-bar');
+    const loadBar = document.getElementById('load-bar');
+    const replayT = document.getElementById('replay-t');
+    const calFlag = document.getElementById('cal-flag');
+    const modeHint = document.getElementById('mode-hint');
+    const chat = document.getElementById('chat');
+    const chatInput = document.getElementById('chat-input');
+    const replayStatus = document.getElementById('replay-status');
+    const lessonSteps = document.querySelectorAll('#lesson-steps li');
+    const startBtn = document.getElementById('start-btn');
+    const continueBtn = document.getElementById('continue-btn');
+    const sendBtn = document.getElementById('send-btn');
+
+    function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
+
+    let currentSnapshot = { engagement: 0, load: 0, mode: 'calibrating', calibrating: true, timestamp: 0 };
+
+    function updateBrain(data) {
+      currentSnapshot = data;
+      const eng = clamp01(data.engagement);
+      const load = clamp01(data.load);
+      const mode = data.mode || 'calibrating';
+
+      modeBadge.textContent = mode;
+      modeBadge.className = 'mode-badge ' + mode;
+
+      engVal.textContent = eng.toFixed(2);
+      loadVal.textContent = load.toFixed(2);
+      engBar.style.width = (eng * 100).toFixed(1) + '%';
+      loadBar.style.width = (load * 100).toFixed(1) + '%';
+
+      replayT.textContent = (data.t || 0).toFixed(1) + 's';
+      calFlag.textContent = data.calibrating ? 'yes' : 'no';
+      modeHint.textContent = MODE_HINTS[mode] || MODE_HINTS.calibrating;
+    }
+
+    function addMessage(role, text, meta) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.textContent = text;
+      if (meta) {
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'msg-meta';
+        metaDiv.textContent = meta;
+        div.appendChild(metaDiv);
+      }
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    // ---------------------------------------------------------------------
+    // Simulated tutor — same mode → behavior mapping as src/mode_prompts.py,
+    // but picking from canned text instead of calling the Gemini API.
+    // ---------------------------------------------------------------------
+    let stepIndex = 0;
+    let lessonStarted = false;
+
+    function markStepsDone() {
+      lessonSteps.forEach((li, i) => li.classList.toggle('done', i < stepIndex));
+    }
+
+    function tutorReply() {
+      const mode = currentSnapshot.mode || 'calibrating';
+
+      if (mode === 'calibrating') {
+        return pick(CALIBRATING_LINES);
+      }
+      if (mode === 'disengaged') {
+        return pick(DISENGAGED_LINES);
+      }
+
+      if (stepIndex >= STEPS.length) {
+        return "That's the full outline — neuron, layers, forward pass, loss, backprop, and MNIST intuition. Ask me anything to go deeper on one of them.";
+      }
+
+      const step = STEPS[stepIndex];
+      if (mode === 'overloaded') {
+        return `${step.title}: ${step.simple}`;
+      }
+
+      // focused → explain and advance
+      const text = `${step.title}: ${step.explain}`;
+      stepIndex += 1;
+      markStepsDone();
+      return text;
+    }
+
+    function respond() {
+      const reply = tutorReply();
+      const snap = currentSnapshot;
+      setTimeout(() => {
+        addMessage('tutor', reply,
+          `mode: ${snap.mode} · eng ${clamp01(snap.engagement).toFixed(2)} · load ${clamp01(snap.load).toFixed(2)} · simulated`);
+      }, 450 + Math.random() * 350);
+    }
+
+    function startLesson() {
+      lessonStarted = true;
+      stepIndex = 0;
+      markStepsDone();
+      startBtn.disabled = true;
+      respond();
+    }
+
+    function sendMessage(text) {
+      if (!text.trim()) return;
+      addMessage('user', text);
+      chatInput.value = '';
+      if (!lessonStarted) { lessonStarted = true; startBtn.disabled = true; }
+      respond();
+    }
+
+    startBtn.addEventListener('click', startLesson);
+    continueBtn.addEventListener('click', () => sendMessage("What's the next concept? Let's keep going."));
+    sendBtn.addEventListener('click', () => sendMessage(chatInput.value));
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(chatInput.value); });
+
+    // ---------------------------------------------------------------------
+    // Band power scrolling chart (same rendering as the live app)
+    // ---------------------------------------------------------------------
+    const bandCanvas = document.getElementById('band-canvas');
+    const bandCtx = bandCanvas.getContext('2d');
+    const BAND_HISTORY = 120;
+    const bandData = { theta: [], alpha: [], beta: [] };
+
+    function pushBand(theta, alpha, beta) {
+      bandData.theta.push(theta);
+      bandData.alpha.push(alpha);
+      bandData.beta.push(beta);
+      if (bandData.theta.length > BAND_HISTORY) {
+        bandData.theta.shift();
+        bandData.alpha.shift();
+        bandData.beta.shift();
+      }
+    }
+
+    function drawBandChart() {
+      const w = bandCanvas.width;
+      const h = bandCanvas.height;
+      const pad = { top: 6, bottom: 6 };
+      const drawH = h - pad.top - pad.bottom;
+      const n = bandData.theta.length;
+
+      bandCtx.clearRect(0, 0, w, h);
+      if (n < 2) return;
+
+      const allVals = [...bandData.theta, ...bandData.alpha, ...bandData.beta];
+      const vMax = Math.max(...allVals) || 1;
+
+      function drawLine(values, color) {
+        bandCtx.beginPath();
+        bandCtx.strokeStyle = color;
+        bandCtx.lineWidth = 1.5;
+        bandCtx.lineJoin = 'round';
+        for (let i = 0; i < values.length; i++) {
+          const x = (i / (BAND_HISTORY - 1)) * w;
+          const y = pad.top + drawH * (1 - values[i] / vMax);
+          if (i === 0) bandCtx.moveTo(x, y);
+          else bandCtx.lineTo(x, y);
+        }
+        bandCtx.stroke();
+      }
+
+      drawLine(bandData.theta, '#7c6fff');
+      drawLine(bandData.alpha, '#3dd68c');
+      drawLine(bandData.beta, '#f59e42');
+    }
+
+    function updateBrainWithBands(data) {
+      updateBrain(data);
+      pushBand(data.theta || 0, data.alpha || 0, data.beta || 0);
+      drawBandChart();
+    }
+
+    // ---------------------------------------------------------------------
+    // Timeline replay — steps through the precomputed decoder output
+    // (docs/timeline.json, generated by src/export_timeline.py) on a loop.
+    // ---------------------------------------------------------------------
+    const TICK_MS = 110; // one point per tick — ~1min45s per full loop
+
+    async function startReplay() {
+      let timeline;
+      try {
+        const res = await fetch('./timeline.json');
+        timeline = await res.json();
+      } catch (e) {
+        replayStatus.textContent = 'Could not load timeline.json';
+        return;
+      }
+
+      let i = 0;
+      updateBrainWithBands(timeline[0]);
+
+      setInterval(() => {
+        i = (i + 1) % timeline.length;
+        if (i === 0) {
+          bandData.theta = []; bandData.alpha = []; bandData.beta = [];
+          replayStatus.textContent = 'Replaying recorded EEG… (looped)';
+        }
+        updateBrainWithBands(timeline[i]);
+      }, TICK_MS);
+    }
+
+    startReplay();
+  </script>
+</body>
+</html>
