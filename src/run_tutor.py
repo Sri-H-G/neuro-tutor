@@ -11,7 +11,7 @@ from src.tutor import AdaptiveTutor
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Adaptive EEG tutor — brain replay + interactive chat"
+        description="Adaptive EEG tutor: brain replay plus interactive chat"
     )
     parser.add_argument(
         "--speed",
@@ -27,7 +27,7 @@ def main() -> None:
     parser.add_argument(
         "--no-brain",
         action="store_true",
-        help="Tutor only — skip brain replay (mode stays calibrating)",
+        help="Tutor only, skip brain replay (mode stays calibrating)",
     )
     args = parser.parse_args()
 
@@ -48,7 +48,7 @@ def main() -> None:
             "Mode updates in the background."
         )
     else:
-        print("Brain loop disabled — plain tutor mode.")
+        print("Brain loop disabled, plain tutor mode.")
 
     print("Type your message (or 'quit' to exit).\n")
 

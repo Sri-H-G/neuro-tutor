@@ -1,4 +1,4 @@
-"""Mode-adaptive LLM tutor — behavior bends to brain state."""
+"""Mode adaptive LLM tutor: behavior bends to brain state."""
 
 from src.gemini_layer import chat
 from src.lesson import LESSON_OUTLINE_TEXT, LESSON_TOPIC
@@ -31,7 +31,7 @@ class AdaptiveTutor:
 
         parts = [
             f"You are a concise, friendly tutor teaching: {LESSON_TOPIC}.",
-            "Keep responses to 2–4 short paragraphs. Use plain language.",
+            "Keep responses to 2 to 4 short paragraphs. Use plain language.",
             "Follow the lesson outline in order unless the learner asks to skip.",
             mode_instruction,
             f"Current signals (session-calibrated estimates): "

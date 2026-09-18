@@ -29,7 +29,7 @@ class DecodeResult:
 
 class StateDecoder:
     """
-    Turn EEG windows into two calibrated 0–1 signals plus a mode label.
+    Turn EEG windows into two calibrated 0 to 1 signals plus a mode label.
 
     Pipeline: extract → calibrate → smooth → classify.
 
@@ -127,11 +127,11 @@ class StateDecoder:
         """
         Process one EEG window (frontal channels, shape n_channels × n_samples).
 
-        Returns engagement (0–1), load (0–1), mode, and calibrating flag.
+        Returns engagement (0 to 1), load (0 to 1), mode, and calibrating flag.
         """
         raw_eng, raw_load, powers = self._extract_raw_signals(window, sfreq)
 
-        # Calibration phase — collect min/max candidates from raw values
+        # Calibration phase: collect min/max candidates from raw values
         if len(self._cal_engagement) < self.calibration_samples:
             self._cal_engagement.append(raw_eng)
             self._cal_load.append(raw_load)

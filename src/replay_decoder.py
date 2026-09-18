@@ -86,7 +86,7 @@ def replay_concatenated(
     task_path: Path,
     decoder: StateDecoder,
 ) -> tuple[list[DecodeResult], float]:
-    """Replay rest then task on one decoder — watch mode flip mid-stream."""
+    """Replay rest then task on one decoder, watching mode flip mid-stream."""
     rest_raw = clean(load_raw(rest_path))
     task_raw = clean(load_raw(task_path))
 

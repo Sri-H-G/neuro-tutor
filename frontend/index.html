@@ -348,9 +348,9 @@
           <div class="band-chart-wrap">
             <h3>Band Power (frontal)</h3>
             <div class="band-legend">
-              <span class="l-theta">Theta 4–8 Hz</span>
-              <span class="l-alpha">Alpha 8–13 Hz</span>
-              <span class="l-beta">Beta 13–30 Hz</span>
+              <span class="l-theta">Theta 4 to 8 Hz</span>
+              <span class="l-alpha">Alpha 8 to 13 Hz</span>
+              <span class="l-beta">Beta 13 to 30 Hz</span>
             </div>
             <canvas id="band-canvas" width="600" height="90"></canvas>
           </div>
@@ -600,7 +600,7 @@
 
       ws.onclose = () => {
         wsDot.className = 'dot error';
-        wsStatus.textContent = 'Disconnected — retrying…';
+        wsStatus.textContent = 'Disconnected, retrying...';
         setTimeout(connectWebSocket, 2000);
       };
 

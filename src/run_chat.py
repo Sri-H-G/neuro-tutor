@@ -1,4 +1,4 @@
-"""Plain multi-turn tutor chat — no brain state (Step 2 smoke test)."""
+"""Plain multi-turn tutor chat, no brain state (Step 2 smoke test)."""
 
 from src.tutor import AdaptiveTutor
 from src.shared_state import BrainState

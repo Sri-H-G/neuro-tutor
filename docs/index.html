@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neuro GenAI Loop — Live Demo</title>
+  <title>Neuro GenAI Loop: Live Demo</title>
   <style>
   :root {
     --bg: #0a0c10;
@@ -313,11 +313,11 @@
     <div class="banner">
       <strong>Demo mode.</strong> This page is static (GitHub Pages), so it replays a
       precomputed EEG session instead of decoding live signal, and the tutor's replies
-      below are pre-written per brain-state mode rather than live Gemini calls — a
-      public page can't safely hold an API key. The brain-state pipeline (signal
-      cleaning → band powers → calibrated engagement/load → mode) and the mode→prompt
+      below are pre written per brain state mode rather than live Gemini calls, since a
+      public page can't safely hold an API key. The brain state pipeline (signal
+      cleaning, band powers, calibrated engagement/load, mode) and the mode to prompt
       logic are real and unchanged; only the "typing" is simulated here.
-      Run it locally with your own Gemini key for the full live version — see the
+      Run it locally with your own Gemini key for the full live version, see the
       <a href="https://github.com/Sri-H-G/neuro-tutor#readme">README</a>.
     </div>
 
@@ -350,9 +350,9 @@
           <div class="band-chart-wrap">
             <h3>Band Power (frontal)</h3>
             <div class="band-legend">
-              <span class="l-theta">Theta 4–8 Hz</span>
-              <span class="l-alpha">Alpha 8–13 Hz</span>
-              <span class="l-beta">Beta 13–30 Hz</span>
+              <span class="l-theta">Theta 4 to 8 Hz</span>
+              <span class="l-alpha">Alpha 8 to 13 Hz</span>
+              <span class="l-beta">Beta 13 to 30 Hz</span>
             </div>
             <canvas id="band-canvas" width="600" height="90"></canvas>
           </div>
@@ -410,10 +410,10 @@
 
   <script>
     // ---------------------------------------------------------------------
-    // Lesson content — mirrors src/lesson.py. Two phrasings per step: a
+    // Lesson content, mirrors src/lesson.py. Two phrasings per step: a
     // normal explanation (focused/calibrating) and a smaller, simpler one
-    // (overloaded) — the same idea src/mode_prompts.py encodes for the
-    // real Gemini-backed tutor.
+    // (overloaded), the same idea src/mode_prompts.py encodes for the
+    // real Gemini backed tutor.
     // ---------------------------------------------------------------------
     const STEPS = [
       {
@@ -423,7 +423,7 @@
       },
       {
         title: 'Layers',
-        explain: "Stack neurons side by side into a layer, and stack layers one after another, and you get a network — each layer takes the previous layer's outputs as its inputs.",
+        explain: "Stack neurons side by side into a layer, and stack layers one after another, and you get a network. Each layer takes the previous layer's outputs as its inputs.",
         simple: "Picture layers as an assembly line: layer 1 does a simple pass over the raw input, layer 2 combines those results into something more useful, and so on.",
       },
       {
@@ -433,29 +433,29 @@
       },
       {
         title: 'Loss function',
-        explain: "The loss function is a single number measuring how wrong the network's prediction was versus the true answer — bigger loss means a worse prediction.",
+        explain: "The loss function is a single number measuring how wrong the network's prediction was versus the true answer. Bigger loss means a worse prediction.",
         simple: "Predicted '7', true answer '7' → loss near zero. Predicted '2', true answer '7' → loss is large. That's the whole idea.",
       },
       {
         title: 'Backpropagation',
         explain: "Backpropagation works backward from the loss, computing how much each weight contributed to the error, so we know which direction to nudge every weight next.",
-        simple: "One piece at a time: backprop asks, for this one weight, 'if I nudge you up slightly, does the loss go up or down?' — then adjusts accordingly.",
+        simple: "One piece at a time: backprop asks, for this one weight, 'if I nudge you up slightly, does the loss go up or down?', then adjusts accordingly.",
       },
       {
         title: 'MNIST intuition',
-        explain: "On MNIST, the input is a grid of pixel brightness values for a handwritten digit, and the output is 10 scores — one per digit 0-9 — the highest being the network's guess.",
+        explain: "On MNIST, the input is a grid of pixel brightness values for a handwritten digit, and the output is 10 scores, one per digit 0 through 9, with the highest being the network's guess.",
         simple: "Zoom in: one 28×28 image of a handwritten '3' becomes 784 numbers going in, and a single label, '3', with a confidence score, comes out.",
       },
     ];
 
     const DISENGAGED_LINES = [
-      "Let's pause here for a second — want a short breather before we continue?",
+      "Let's pause here for a second. Want a short breather before we continue?",
       "I notice focus dropping. Quick change of pace: what part so far felt clearest, and what felt fuzzy?",
-      "No rush at all. Take a short break if you need one — the lesson will be here when you're back.",
+      "No rush at all. Take a short break if you need one, the lesson will be here when you're back.",
     ];
 
     const CALIBRATING_LINES = [
-      "Still establishing your baseline (~10s) — I'll teach at a steady pace until then.",
+      "Still establishing your baseline (~10s). I'll teach at a steady pace until then.",
       "Calibrating your signal. Meanwhile: a neural network is just layers of small, simple decisions chained together.",
     ];
 
@@ -525,7 +525,7 @@
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
     // ---------------------------------------------------------------------
-    // Simulated tutor — same mode → behavior mapping as src/mode_prompts.py,
+    // Simulated tutor, same mode to behavior mapping as src/mode_prompts.py,
     // but picking from canned text instead of calling the Gemini API.
     // ---------------------------------------------------------------------
     let stepIndex = 0;
@@ -546,7 +546,7 @@
       }
 
       if (stepIndex >= STEPS.length) {
-        return "That's the full outline — neuron, layers, forward pass, loss, backprop, and MNIST intuition. Ask me anything to go deeper on one of them.";
+        return "That's the full outline: neuron, layers, forward pass, loss, backprop, and MNIST intuition. Ask me anything to go deeper on one of them.";
       }
 
       const step = STEPS[stepIndex];
@@ -649,10 +649,10 @@
     }
 
     // ---------------------------------------------------------------------
-    // Timeline replay — steps through the precomputed decoder output
+    // Timeline replay, steps through the precomputed decoder output
     // (docs/timeline.json, generated by src/export_timeline.py) on a loop.
     // ---------------------------------------------------------------------
-    const TICK_MS = 110; // one point per tick — ~1min45s per full loop
+    const TICK_MS = 110; // one point per tick, about 1 minute 45 seconds per full loop
 
     async function startReplay() {
       let timeline;

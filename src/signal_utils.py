@@ -16,7 +16,7 @@ BANDS = {
 
 
 def clean(raw: mne.io.Raw) -> mne.io.Raw:
-    """Bandpass 1–40 Hz, notch 50 Hz, average reference."""
+    """Bandpass 1 to 40 Hz, notch 50 Hz, average reference."""
     cleaned = raw.copy()
     cleaned.filter(l_freq=FILTER_LOW, h_freq=FILTER_HIGH, verbose=False)
     cleaned.notch_filter(freqs=NOTCH_FREQ, verbose=False)
@@ -55,7 +55,7 @@ def band_powers(
 
 
 def engagement_index(band_power: dict[str, float]) -> float:
-    """Beta / (alpha + theta) — higher during focused mental tasks."""
+    """Beta / (alpha + theta): higher during focused mental tasks."""
     alpha = band_power["alpha"]
     theta = band_power["theta"]
     beta = band_power["beta"]
@@ -78,7 +78,7 @@ def alpha_peak_height(
     data: np.ndarray,
     fs: float,
 ) -> tuple[float, float]:
-    """Peak PSD value and its frequency within the alpha band (8–13 Hz)."""
+    """Peak PSD value and its frequency within the alpha band (8 to 13 Hz)."""
     freqs, psd = welch_spectrum(data, fs)
     mask = (freqs >= 8) & (freqs <= 13)
     alpha_freqs = freqs[mask]

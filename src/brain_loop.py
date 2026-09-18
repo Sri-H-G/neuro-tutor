@@ -55,7 +55,7 @@ def run_replay_loop(
     Replay rest→task EEG, updating brain_state at decoder rate.
 
     speed: time multiplier (20 = 20× faster than real time).
-    stop_event: optional threading.Event — set to stop the loop.
+    stop_event: optional threading.Event, set to stop the loop.
     """
     rest_path = rest_path or DATA_DIR / "Subject00_1.edf"
     task_path = task_path or DATA_DIR / "Subject00_2.edf"

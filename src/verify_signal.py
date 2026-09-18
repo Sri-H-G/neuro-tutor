@@ -32,7 +32,7 @@ def step_a_load(path: Path) -> None:
 
 
 def step_b_clean(path: Path):
-    """Load and clean — no output."""
+    """Load and clean, no output."""
     raw = load_raw(path)
     return clean(raw)
 
@@ -56,8 +56,8 @@ def step_c_plot_spectra(rest_raw, task_raw) -> Path:
     ax.plot(rest_freqs, rest_psd, label="Rest (_1)", color="#6c8cff", linewidth=1.5)
     ax.plot(task_freqs, task_psd, label="Task (_2)", color="#ff6c8c", linewidth=1.5)
 
-    ax.axvspan(8, 13, alpha=0.12, color="#6c8cff", label="Alpha (8–13 Hz)")
-    ax.axvspan(13, 30, alpha=0.12, color="#ff6c8c", label="Beta (13–30 Hz)")
+    ax.axvspan(8, 13, alpha=0.12, color="#6c8cff", label="Alpha (8 to 13 Hz)")
+    ax.axvspan(13, 30, alpha=0.12, color="#ff6c8c", label="Beta (13 to 30 Hz)")
 
     ax.set_xlim(0, 40)
     ax.set_xlabel("Frequency (Hz)")
@@ -75,7 +75,7 @@ def step_c_plot_spectra(rest_raw, task_raw) -> Path:
 
 
 def step_d_features(rest_raw, task_raw) -> None:
-    """Compare band powers and candidate state features — all channels vs frontal."""
+    """Compare band powers and candidate state features: all channels vs frontal."""
     fs = rest_raw.info["sfreq"]
     n_samples = int(WINDOW_SEC * fs)
 
@@ -139,7 +139,7 @@ def main() -> None:
 
     rest_clean = step_b_clean(REST_FILE)
     task_clean = step_b_clean(TASK_FILE)
-    print("\n=== Step B: Cleaned both files (bandpass 1–40, notch 50, avg ref) ===")
+    print("\n=== Step B: Cleaned both files (bandpass 1 to 40, notch 50, avg ref) ===")
 
     step_c_plot_spectra(rest_clean, task_clean)
     step_d_features(rest_clean, task_clean)

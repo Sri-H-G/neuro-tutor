@@ -183,7 +183,7 @@ def run_http(host: str, port: int):
 def main():
     global _brain_state, _tutor
 
-    parser = argparse.ArgumentParser(description="Neuro GenAI Loop — full web app")
+    parser = argparse.ArgumentParser(description="Neuro GenAI Loop: full web app")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--http-port", type=int, default=8080)
     parser.add_argument("--ws-port", type=int, default=8765)
