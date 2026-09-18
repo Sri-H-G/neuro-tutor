@@ -1,26 +1,38 @@
-# neuro-genai-loop
+# Neuro GenAI Loop
 
-EEG brain-state engine and adaptive LLM tutor. Raw EEG → cleaned frontal features → calibrated engagement/load → mode label → tutor adapts pedagogy in real time.
+An EEG powered adaptive tutor. It reads a person's brain activity, estimates how engaged they are and how mentally loaded they are, and uses that to change what an AI tutor teaches and how it teaches it, in real time.
 
-Demonstrated on replayed PhysioNet EEGMAT data (rest vs mental arithmetic).
+**Live demo (no setup required):** https://sri-h-g.github.io/neuro-tutor/
 
-**Live demo:** https://sri-h-g.github.io/neuro-tutor/ — a static replay of a
-real decoded EEG session (same signal pipeline, same mode→prompt logic) with
-simulated tutor replies, since a public static page can't hold a real API
-key. For the full experience with live EEG replay and real Gemini responses,
-run it locally (below).
+## The idea in one paragraph
 
-## AI layer
+A learner's EEG is recorded while they rest and then while they do a mental task. The signal is cleaned, turned into two scores between 0 and 1 (engagement and cognitive load), and those scores are classified into a mode: focused, overloaded, or disengaged. That mode is injected into the system prompt sent to an LLM tutor before every reply, so the same lesson gets taught differently depending on how the learner's brain is actually responding, not just what they type.
 
-The tutor calls the **Gemini API** (`gemini-2.0-flash` by default,
-[src/gemini_layer.py](src/gemini_layer.py)) and rebuilds its system prompt on
-every turn from the current decoded brain state
-([src/mode_prompts.py](src/mode_prompts.py), [src/tutor.py](src/tutor.py)):
-focused → advance and go deeper, overloaded → slow down and simplify,
-disengaged → suggest a break. Gemini was chosen because it has a genuinely
-free tier, which matters for a demo people can try without adding billing.
+## What this project demonstrates
 
-## Setup
+- **Signal processing:** loading, filtering, and referencing raw EEG (MNE), then extracting frequency band power (theta, alpha, beta) from frontal channels.
+- **Applied calibration:** turning noisy raw signal into two stable, session calibrated 0 to 1 scores, with smoothing and hysteresis so the classified mode doesn't flicker.
+- **AI integration:** a multi turn tutor that calls the Gemini API and rebuilds its own system prompt every turn based on live sensor state, not just conversation history.
+- **Full stack build:** a Python backend (WebSocket plus HTTP server) serving a real time dashboard, and a separate static site (vanilla HTML, CSS, and JavaScript, no framework) deployed to GitHub Pages.
+
+## How it works
+
+1. Load a rest recording and a task recording (PhysioNet EEGMAT dataset).
+2. Clean the signal: bandpass filter, notch filter, average reference.
+3. Slide a window across the recording and compute band power per window.
+4. Calibrate the first few seconds into a baseline, then normalize every new window against it to get an engagement score and a load score.
+5. Classify a mode from those two scores.
+6. Before every tutor reply, read the current mode and adjust the system prompt: move faster when focused, slow down and simplify when overloaded, offer a break when disengaged.
+
+## Tech stack
+
+Python, MNE, NumPy, SciPy for the EEG pipeline. A lightweight WebSocket and HTTP server (standard library plus `websockets`) for the live app. Google's Gemini API for the tutor. Plain HTML, CSS, and JavaScript for both the live dashboard and the static demo, no build tooling required.
+
+## Try it
+
+**Live demo:** https://sri-h-g.github.io/neuro-tutor/ replays a real decoded EEG session through the same dashboard. Its tutor replies are pre written per mode instead of live API calls, since a public static page can't safely hold an API key. Everything upstream of the reply (signal cleaning, calibration, mode classification) is the real pipeline, precomputed once and replayed.
+
+**Full local version**, with live EEG replay and real Gemini responses:
 
 ```bash
 python -m venv .venv
@@ -29,56 +41,39 @@ pip install -r requirements.txt
 export GEMINI_API_KEY=your_key_here
 ```
 
-Download EEG files into `data/` (e.g. `Subject00_1.edf` rest, `Subject00_2.edf` task from [PhysioNet EEGMAT](https://physionet.org/content/eegmat/1.0.0/)).
-
-## Run the web app
+Download EEG files into `data/` (`Subject00_1.edf` for rest, `Subject00_2.edf` for task, from [PhysioNet EEGMAT](https://physionet.org/content/eegmat/1.0.0/)).
 
 ```bash
 python -m src.run_app
 ```
 
-Open **http://127.0.0.1:8080** — live brain state + adaptive tutor chat.
+Open http://127.0.0.1:8080 for the live brain state view and adaptive tutor chat.
 
-Options: `--speed 30`, `--narrate`, `--http-port 8080`
+Useful flags: `--speed 30` (replay speed multiplier), `--narrate` (tutor briefly explains why it's adapting), `--http-port 8080`.
 
 ## Other commands
 
 ```bash
-python -m src.verify_signal      # signal verification (spectrum + features)
-python -m src.replay_decoder     # decoder mode timeline
-python -m src.run_tutor            # CLI tutor + brain replay
-python -m src.run_demo             # scripted demo for recording
-python -m src.export_timeline      # regenerate docs/timeline.json for the GitHub Pages demo
+python -m src.verify_signal      # signal verification: spectrum and features
+python -m src.replay_decoder     # print the decoder's mode timeline
+python -m src.run_tutor          # CLI tutor plus brain replay
+python -m src.run_demo           # scripted demo, useful for recording a video
+python -m src.export_timeline    # regenerate docs/timeline.json for the GitHub Pages demo
 ```
 
-## GitHub Pages demo
+## Publishing the GitHub Pages demo
 
-`docs/` is a self-contained static site: it fetches `docs/timeline.json` (a
-full rest→task decoder run, precomputed by `src/export_timeline.py`) and
-replays it on a loop, driving the same brain-state UI as the live app. The
-tutor panel picks from pre-written replies keyed by mode instead of calling
-Gemini, since GitHub Pages has no backend to hold an API key — see the
-banner on the page itself.
+`docs/` is a self contained static site. It fetches `docs/timeline.json` (a full rest to task decoder run, precomputed by `src/export_timeline.py`) and replays it on a loop through the same dashboard code as the live app.
 
-To (re)publish: regenerate `docs/timeline.json` after any decoder change,
-commit it, then in the repo's **Settings → Pages** set source to *Deploy
-from a branch* → `main` → `/docs`.
-
-## Branches
-
-| Branch | Stage |
-|--------|--------|
-| `main` | Full app (dashboard + tutor) |
-| `feature/signal-pipeline` | Load, clean, verify spectra |
-| `feature/state-decoder` | + StateDecoder and replay |
-| `feature/adaptive-tutor` | + Gemini tutor and brain loop |
+To update it: regenerate `docs/timeline.json` after any decoder change, commit it, then in the repo's Settings, Pages, set source to "Deploy from a branch", branch `main`, folder `/docs`.
 
 ## Project structure
 
 ```
 neuro-genai-loop/
-├── data/            # EEG input files (not committed)
-├── src/             # Pipeline, decoder, tutor, servers
-├── frontend/        # Web dashboard
-└── outputs/         # Generated plots (not committed)
+├── data/            EEG input files, not committed
+├── src/             signal pipeline, decoder, tutor, servers
+├── frontend/        web dashboard for the live app
+├── docs/            static GitHub Pages demo
+└── outputs/         generated plots, not committed
 ```
